@@ -1,0 +1,57 @@
+# LLM Configuration
+llm:
+  providers:
+    fast: openai
+    long_context: openai
+    embeddings: openai
+
+# Text-to-Speech Configuration
+tts:
+  provider: google_multispeaker
+  settings:
+    elevenlabs:
+      voice_mapping:
+        Interviewer: Chris
+        Interviewee: Charlie
+      model: eleven_multilingual_v2
+    google:
+      voice_mapping:
+        Interviewer: en-US-Journey-F
+        Interviewee: en-US-Journey-D
+      language_code: en-US
+      effects_profile_id: small-bluetooth-speaker-class-device
+    google_multispeaker:
+      voice_mapping:
+        Interviewer: R
+        Interviewee: S
+      language_code: en-US
+      effects_profile_id: small-bluetooth-speaker-class-device
+
+# Output Configuration
+output:
+  format: mp3
+  directories:
+    temp_audio: ./.temp_audio
+    output: ./output
+    checkpoints: ./.checkpoints
+
+# Rate Limits
+rate_limits:
+  elevenlabs:
+    requests_per_minute: 20
+    max_retries: 10
+    base_delay: 2.0
+  google:
+    requests_per_minute: 20
+    max_retries: 10
+    base_delay: 2.0
+
+# Podcast Settings
+podcast:
+  name: Podcast LLM
+  intro: "Welcome to {podcast_name}. Today we've invited an expert to talk about {topic}."
+  outro: "That's all for today. Thank you for listening to {podcast_name}. See you next time when we'll talk about whatever you want."
+  structure:
+    - Episode Introduction (with subsections)
+    - Main Discussion Topics (with subsections)
+    - Conclusion (with subsections)
