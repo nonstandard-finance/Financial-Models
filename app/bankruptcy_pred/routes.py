@@ -4,6 +4,8 @@ import numpy as np
 from fastapi import FastAPI, HTTPException, APIRouter
 from pydantic import BaseModel
 
+from sklearn.preprocessing import PowerTransformer
+
 router = APIRouter(
     prefix="/bankruptcy",
     tags=["Bankruptcy"],
@@ -11,9 +13,9 @@ router = APIRouter(
 
 # Define the paths where the trained model and scaler were saved.
 # (Be sure to update your training code to save the scaler used for features, e.g., scaler_X)
-MODEL_DIR = "Bankruptcy_Prediction_Model"
+MODEL_DIR = "models"
 MODEL_PATH = os.path.join(MODEL_DIR, "bankruptcy_model.pkl")
-SCALER_X_PATH = os.path.join(MODEL_DIR, "scaler_x.pkl")
+
 
 # Load the trained classifier and feature scaler at startup
 try:
@@ -21,12 +23,6 @@ try:
         model = pickle.load(f)
 except Exception as e:
     raise RuntimeError(f"Failed to load model from {MODEL_PATH}: {e}")
-
-try:
-    with open(SCALER_X_PATH, "rb") as f:
-        scaler_x = pickle.load(f)
-except Exception as e:
-    raise RuntimeError(f"Failed to load feature scaler from {SCALER_X_PATH}: {e}")
 
 
 # Define the expected input payload using Pydantic
@@ -50,15 +46,13 @@ def read_root():
 def predict_bankruptcy(data: BankruptcyInput):
     try:
         # Compute the interaction features:
-        # Interaction_Current_Quick = current_ratio * quick_ratio
-        # Interaction_Return_Debt = return_on_assets * debt_to_equity
         interaction_current_quick = data.current_ratio * data.quick_ratio
         interaction_return_debt = data.return_on_assets * data.debt_to_equity
 
+        scaler_x = PowerTransformer()
+
         # Assemble the feature vector in the same order as used during training:
-        # [Current_Ratio, Quick_Ratio, Debt_to_Equity, Return_on_Assets, Operating_Margin,
-        #  Lagged_Revenue, Lagged_Net_Income, Lagged_Operating_Cash_Flow,
-        #  Interaction_Current_Quick, Interaction_Return_Debt]
+
         features = np.array([[
             data.current_ratio,
             data.quick_ratio,
@@ -78,7 +72,6 @@ def predict_bankruptcy(data: BankruptcyInput):
         # Predict the bankruptcy class using the loaded classifier
         prediction = model.predict(features_scaled)
 
-        # If your classifier supports probability estimates, you can also compute them.
         # Here we assume that the positive class (1) means bankruptcy.
         bankruptcy_probability = None
         if hasattr(model, "predict_proba"):

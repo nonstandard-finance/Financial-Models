@@ -9,7 +9,9 @@ from scalar_fastapi import get_scalar_api_reference
 
 
 # from app.monitoring.services import request_attributes_mapper, monitoring
-from app.auth.routes import router as auth_router
+# from app.auth.routes import router as auth_router
+from app.bankruptcy_pred.routes import router as bankruptcy_pred_router
+from app.cashflow.routes import router as cashflow_router
 
 
 def custom_openapi():
@@ -68,7 +70,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router, prefix="/auth", tags=["AUTH"])
+# app.include_router(auth_router, prefix="/auth", tags=["AUTH"])
+app.include_router(bankruptcy_pred_router, prefix="/bankruptcy", tags=["Bankruptcy"])
+app.include_router(cashflow_router, prefix="/cashflow", tags=["Cash Flow"])
 
 if __name__ == "__main__":
     import uvicorn

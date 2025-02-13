@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 from fastapi import HTTPException, APIRouter
 from pydantic import BaseModel
+from sklearn.preprocessing import PowerTransformer
 
 router = APIRouter(
     prefix="/cashflow",
@@ -11,10 +12,9 @@ router = APIRouter(
 
 # Define the paths where your trained model and scalers were saved.
 # (Make sure these files exist; see the "Saving additional objects" section below.)
-MODEL_DIR = "Cash_Flow_Prediction_Model"
+MODEL_DIR = "models"
 MODEL_PATH = os.path.join(MODEL_DIR, "cash_flow_model.pkl")
-SCALER_X_PATH = os.path.join(MODEL_DIR, "scaler_x.pkl")
-SCALER_Y_PATH = os.path.join(MODEL_DIR, "scaler_y.pkl")
+
 
 # Load the trained model and preprocessing scalers on startup
 try:
@@ -23,17 +23,6 @@ try:
 except Exception as e:
     raise RuntimeError(f"Failed to load model from {MODEL_PATH}: {e}")
 
-try:
-    with open(SCALER_X_PATH, "rb") as f:
-        scaler_x = pickle.load(f)
-except Exception as e:
-    raise RuntimeError(f"Failed to load feature scaler from {SCALER_X_PATH}: {e}")
-
-try:
-    with open(SCALER_Y_PATH, "rb") as f:
-        scaler_y = pickle.load(f)
-except Exception as e:
-    raise RuntimeError(f"Failed to load target scaler from {SCALER_Y_PATH}: {e}")
 
 
 # Define the expected input payload using Pydantic
@@ -59,6 +48,7 @@ def predict_cash_flow(data: FinancialInput):
         # Compute the interaction features (the order here must match what was used in training)
         interaction_current_quick = data.current_ratio * data.quick_ratio
         interaction_return_debt = data.return_on_assets * data.debt_to_equity
+        scaler_x  = PowerTransformer()
 
         # Assemble the feature vector in the same order as during training:
         # [Current_Ratio, Quick_Ratio, Debt_to_Equity, Return_on_Assets,
@@ -83,12 +73,9 @@ def predict_cash_flow(data: FinancialInput):
         # Predict the (normalized) target value using the loaded model
         prediction_norm = model.predict(features_scaled)
 
-        # Invert the target scaling (using StandardScaler) to get the prediction in original scale.
-        # Note: we reshape the prediction to 2D since the scaler expects a 2D array.
-        prediction = scaler_y.inverse_transform(prediction_norm.reshape(-1, 1))
 
         # Return the prediction as a JSON response
-        return {"predicted_cash_flow": prediction[0, 0]}
+        return {"predicted_cash_flow": prediction_norm}
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {e}")
